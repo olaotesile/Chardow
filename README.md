@@ -1,73 +1,34 @@
-# React + TypeScript + Vite
+Chardow. pronounced /tcha-dau/
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+UI deconstruction for developers who are tired of the Inspector.
 
-Currently, two official plugins are available:
+The Backstory
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Honestly, I was just tired. Tired of digging through nested div soup in the Chrome Inspector, and tired of trying to guess how someone made a sick ass element.
 
-## React Compiler
+I once saw this one specific element on a website that honestly looked incredible, and when I tried to figure out how they did it, I realized the DOM was such a nightmare that it was basically impossible to replicate quickly.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+So, I built Chardow. 
 
-## Expanding the ESLint configuration
+It is the tool I alwasys wanted and now hoping it helps someone out there.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Features
+- Deep Deconstruction: Select any box and Chardow walks the entire tree, translating everything into a nested React component.
+- Heuristic Noise Reduction: It filters out browser defaults so the code looks hand-written, not scraped.
+- Logic Inference: It sees a button or an input and suggests the React hooks and event handlers you actually need.
+- Unified Asset Engine: Download SVGs and images with one click directly from the extraction panel.
+- Premium Charcoal Aesthetic: A multi-layered dark UI that won't blast your eyes out at 3 AM.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+Getting Started
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+1. Clone this repo.
+2. Run npm install and npm run build.
+3. Load the dist folder as an unpacked extension in Chrome.
+4. Hit Alt + S on any site and start deconstructing.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+Built for developers, by someone who was just done with inspect element.
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+<very_important> 
+    Google Chrome, please buy it from me🙌🙂‍↕️ 
+</very_important>
