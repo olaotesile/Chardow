@@ -66,7 +66,6 @@ const extractElementNode = (element: Element): ElementNode => {
             if (text) children.push(text)
         } else if (child.nodeType === Node.ELEMENT_NODE) {
             const childEl = child as Element
-            // Skip our own overlay
             if (childEl.id === 'chardow-overlay-host') return
             children.push(extractElementNode(childEl))
         }
@@ -87,6 +86,8 @@ export function SelectionOverlay({ isActive, onElementSelected }: SelectionOverl
         classes: []
     })
     const [hoveredElement, setHoveredElement] = useState<Element | null>(null)
+    const [selectedRect, setSelectedRect] = useState<DOMRect | null>(null)
+    const [selectedTag, setSelectedTag] = useState<string>('')
 
     const updateHighlight = useCallback((element: Element) => {
         setHoveredElement(element)
@@ -100,12 +101,14 @@ export function SelectionOverlay({ isActive, onElementSelected }: SelectionOverl
 
     const handleMouseMove = useCallback((e: MouseEvent) => {
         if (!isActive) return
-        const target = e.target as Element
 
-        // Ignore our own overlay elements
-        if (target.closest('#chardow-overlay-host')) return
+        // Find element at current mouse position effectively "under" our overlay
+        const elementsAtPoint = document.elementsFromPoint(e.clientX, e.clientY)
+        const target = elementsAtPoint.find(el => !el.closest('#chardow-overlay-host'))
 
-        updateHighlight(target)
+        if (target) {
+            updateHighlight(target)
+        }
     }, [isActive, updateHighlight])
 
     const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -127,26 +130,60 @@ export function SelectionOverlay({ isActive, onElementSelected }: SelectionOverl
     }, [isActive, hoveredElement, updateHighlight])
 
     const handleClick = useCallback((e: MouseEvent) => {
-        if (!isActive || !hoveredElement) return
+        if (!isActive) return
 
         // Prevent default behavior and stop propagation
         e.preventDefault()
         e.stopPropagation()
 
-        const element = hoveredElement
-        const rect = element.getBoundingClientRect()
-        const node = extractElementNode(element)
+        const elementsAtPoint = document.elementsFromPoint(e.clientX, e.clientY)
+        const target = elementsAtPoint.find(el => !el.closest('#chardow-overlay-host'))
 
-        onElementSelected({
-            tagName: element.tagName.toLowerCase(),
-            classes: Array.from(element.classList),
-            styles: node.styles,
-            innerHTML: element.innerHTML,
-            outerHTML: element.outerHTML,
-            rect: rect,
-            node: node
-        })
-    }, [isActive, hoveredElement, onElementSelected])
+        if (target) {
+            const rect = target.getBoundingClientRect()
+            const node = extractElementNode(target)
+
+            setSelectedRect(rect)
+            setSelectedTag(target.tagName.toLowerCase())
+
+            onElementSelected({
+                tagName: target.tagName.toLowerCase(),
+                classes: Array.from(target.classList),
+                styles: node.styles,
+                innerHTML: target.innerHTML,
+                outerHTML: target.outerHTML,
+                rect: rect,
+                node: node
+            })
+        }
+    }, [isActive, onElementSelected])
+
+    // Effect to prevent page interaction during selection
+    useEffect(() => {
+        if (!isActive) return
+
+        const blockEvent = (e: Event) => {
+            if (!(e.target as Element).closest('#chardow-overlay-host')) {
+                e.preventDefault()
+                e.stopPropagation()
+            }
+        }
+
+        // Block everything in the capture phase
+        document.addEventListener('mousedown', blockEvent, true)
+        document.addEventListener('mouseup', blockEvent, true)
+        document.addEventListener('click', blockEvent, true)
+        document.addEventListener('dblclick', blockEvent, true)
+        document.addEventListener('contextmenu', blockEvent, true)
+
+        return () => {
+            document.removeEventListener('mousedown', blockEvent, true)
+            document.removeEventListener('mouseup', blockEvent, true)
+            document.removeEventListener('click', blockEvent, true)
+            document.removeEventListener('dblclick', blockEvent, true)
+            document.removeEventListener('contextmenu', blockEvent, true)
+        }
+    }, [isActive])
 
     useEffect(() => {
         if (isActive) {
@@ -166,23 +203,36 @@ export function SelectionOverlay({ isActive, onElementSelected }: SelectionOverl
         }
     }, [isActive, handleMouseMove, handleClick, handleKeyDown])
 
-    if (!isActive) return null
-
+    // Visual states for selection
     const { rect } = highlight
 
     return (
         <>
-            {/* Mode indicator */}
-            <div className="chardow-mode-indicator">
-                <div className="chardow-pulse" />
-                <div className="flex flex-col">
-                    <span className="text-white font-medium">Selection Active</span>
-                    <span className="text-[9px] text-neutral-400 uppercase tracking-tighter">Use ↑ ↓ to traverse DOM</span>
-                </div>
-            </div>
+            {/* Snapshot Overlay Mask (Dormant Mode) */}
+            {isActive && (
+                <div className="chardow-snapshot-mask" style={{
+                    position: 'fixed',
+                    inset: 0,
+                    background: 'rgba(5, 5, 5, 0.4)',
+                    backdropFilter: 'grayscale(0.5) blur(1px)',
+                    zIndex: 2147483640,
+                    pointerEvents: 'auto' // This intercept events
+                }} />
+            )}
 
-            {/* Highlight box */}
-            {rect && (
+            {/* Selection Active Indicator */}
+            {isActive && (
+                <div className="chardow-mode-indicator">
+                    <div className="chardow-pulse" />
+                    <div className="flex flex-col">
+                        <span className="text-white font-medium">Snapshot Mode</span>
+                        <span className="text-[9px] text-neutral-400 uppercase tracking-tighter">Page dormant. Mouse over to select.</span>
+                    </div>
+                </div>
+            )}
+
+            {/* Hover Highlight (Active during selection) */}
+            {isActive && rect && (
                 <>
                     <div
                         className="chardow-highlight"
@@ -190,7 +240,8 @@ export function SelectionOverlay({ isActive, onElementSelected }: SelectionOverl
                             top: rect.top,
                             left: rect.left,
                             width: rect.width,
-                            height: rect.height
+                            height: rect.height,
+                            borderStyle: 'dashed'
                         }}
                     />
                     <div
@@ -209,9 +260,36 @@ export function SelectionOverlay({ isActive, onElementSelected }: SelectionOverl
                                 .{highlight.classes.slice(0, 2).join('.')}
                             </span>
                         )}
-                        <span style={{ opacity: 0.3, fontSize: '9px', borderLeft: '1px solid rgba(255,255,255,0.2)', paddingLeft: 8 }}>
-                            {Math.round(rect.width)} × {Math.round(rect.height)}
-                        </span>
+                    </div>
+                </>
+            )}
+
+            {/* Persistent Selection Highlight (Visible when NOT in selection mode) */}
+            {!isActive && selectedRect && (
+                <>
+                    <div
+                        className="chardow-highlight chardow-persistent"
+                        style={{
+                            top: selectedRect.top,
+                            left: selectedRect.left,
+                            width: selectedRect.width,
+                            height: selectedRect.height,
+                            borderColor: '#3b82f6',
+                            boxShadow: '0 0 30px rgba(59, 130, 246, 0.5), inset 0 0 10px rgba(59, 130, 246, 0.2)'
+                        }}
+                    />
+                    <div
+                        className="chardow-label chardow-persistent-label"
+                        style={{
+                            top: Math.max(0, selectedRect.top - 28),
+                            left: selectedRect.left,
+                            background: '#3b82f6',
+                            color: '#fff',
+                            border: 'none',
+                            fontSize: '10px'
+                        }}
+                    >
+                        Active: &lt;{selectedTag}&gt;
                     </div>
                 </>
             )}
